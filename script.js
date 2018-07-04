@@ -1,56 +1,45 @@
-const findChildNodesByTagName = (elem, tagNames) => {
-  let children =[elem], result = [];
-  //javascriptはすぐにMaximum call stack size exceededするため再帰関数は使わない
-  while(children.length) {
-    console.log(children);
-    node = children.pop();
-    if(node.hasChildNodes) {
-      subChildren = []
-      node.childNodes.forEach((i) => {subChildren.push(i)});
-      children = subChildren.concat(children)
-    }
-    if(tagNames.includes(node.tagName)) {result.push(node);}  
-  }
-  return result;
+const idxNum2text = (indexNums, sep = ".") => indexNums.join([separator = sep]);
+
+const createListElement = (indexNums, content, childUlId = "") => {
+  const text = content.slice(content.indexOf(' ') + 1);
+  const liElement = document.createElement("li");
+  liElement.innerHTML = idxNum2text(indexNums) + ": "+ text;
+  return liElement
 }
 
-const createTableText = (numIndent, numIndex, content) => {
-  
+const generateToC = (parentListElement, node, indexNums, contentTagNumber, childClassNumber) => {
+  const childUlId = "ul" + idxNum2text(indexNums, "");
+
+  if(contentTagNumber > 1) {
+    const content = node.getElementsByTagName("H" + contentTagNumber)[0].textContent;
+    parentListElement.appendChild(createListElement(indexNums, content, childUlId));
+  }
+
+  if(childClassNumber <= 3) {
+    const childSections = Array.from(node.getElementsByClassName("div" + childClassNumber));
+    const ListElement = document.createElement("ul");
+    ListElement.id = childUlId;
+    childSections.forEach((n, idx) => {
+      generateToC(ListElement, n, [...indexNums, idx + 1], contentTagNumber + 1, childClassNumber + 1);
+      parentListElement.appendChild(ListElement);
+    });
+  }
 }
 
 window.onload = () => {
-  const allElements =  Array.from(document.body.getElementsByTagName("*"));
-  const mainContentIndex = allElements.findIndex(elem => elem.tagName == "DIV" && elem.className == "body");
-  const appendixIndex = allElements.findIndex(elem => elem.tagName == "DIV" && elem.className == "back");
-  const mainContents = allElements.slice(mainContentIndex, appendixIndex);
+  const mainNode = document.getElementsByClassName("body")[0];
+  const ToCElement = document.createElement("ul");
+  generateToC(ToCElement, mainNode, [], 1, 1);
 
-  let secIdx = 0, subsecIdx = 0, subsubsecIdx = 0;
-  mainContents.forEach(elem => {
-    if(elem.tagName == "H2") {
-        secIdx++; subsecIdx = 0; subsubsecIdx = 0;
-        console.log(`${secIdx} ${elem.textContent}`);
-    } else if(elem.tagName == "H3") {
-        subsecIdx++; subsubsecIdx = 0;
-        console.log(`\t${secIdx}.${subsecIdx} ${elem.textContent}`);
-    } else if(elem.tagName == "H4") {
-      subsubsecIdx++;
-      console.log(`\t\t${secIdx}.${subsecIdx}.${subsubsecIdx} ${elem.textContent}`);
-    }
-  });
+  const appendixNode = document.getElementsByClassName("back")[0];
+  const appendixToCElement = document.createElement("ul");
+  generateToC(appendixToCElement, appendixNode, [], 1, 1);
 
-  const appendixContents = allElements.slice(appendixIndex);
+  const ToC = document.createElement("div");
+  ToC.innerHTML = "<H2>Generated Table of Contents</H2>";
+  ToC.appendChild(ToCElement);
+  ToC.appendChild(document.createElement("hr"));
+  ToC.appendChild(appendixToCElement);
 
-  secIdx = 64, subsecIdx = 0, subsubsecIdx = 0;
-  appendixContents.forEach(elem => {
-    if(elem.tagName == "H2") {
-        secIdx++; subsecIdx = 0; subsubsecIdx = 0;
-        console.log(`${String.fromCharCode(secIdx)} ${elem.textContent}`);
-    } else if(elem.tagName == "H3") {
-        subsecIdx++; subsubsecIdx = 0;
-        console.log(`\t${String.fromCharCode(secIdx)}.${subsecIdx} ${elem.textContent}`);
-    } else if(elem.tagName == "H4") {
-      subsubsecIdx++;
-      console.log(`\t\t${String.fromCharCode(secIdx)}.${subsecIdx}.${subsubsecIdx} ${elem.textContent}`);
-    }
-  });
+  document.body.insertBefore(ToC, document.body.firstChild);
 }
