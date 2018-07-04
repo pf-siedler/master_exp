@@ -26,6 +26,41 @@ const generateToC = (parentListElement, node, indexNums, contentTagNumber, child
   }
 }
 
+const collectDefinition = (mainNode) => {
+  const regDefinition = new RegExp("\\[Definition\\:", "g");
+  const defPassages = Array.from(mainNode.getElementsByTagName("p")).filter(elem => regDefinition.test(elem.textContent));
+  const defWords = [];
+  defPassages.forEach(passage => {
+    const words = Array.from(passage.getElementsByTagName("b")).filter(elem => elem.parentElement.tagName != "A");
+    words.forEach(word => {
+      const idxRow = {};
+      const w = word.innerHTML;
+      const wordId = `def-${w.replace(/\s+/g, '')}`;
+      word.id = wordId;
+      const idxDef = document.createElement("a");
+      idxDef.innerHTML = w;
+      idxDef.href = `#${wordId}`;
+      idxRow.def = idxDef;
+      idxRow.usage = [];
+      const usage = Array.from(mainNode.getElementsByTagName("*")).filter(elem => elem.textContent.includes(w) && elem.name != `def-${w}`);
+      const usageId = n => `usg${n}-${w.replace(/\s+/g, '')}`;
+      let numUsage = 0;
+      usage.forEach(elem => {
+        if(elem.id.includes("usg") || elem.id.includes("def")) return;
+        elem.id = usageId(numUsage);
+        const refElement = document.createElement("a");
+        refElement.innerHTML = `[${numUsage+1}]`;
+        refElement.href = `#${usageId(numUsage)}`;
+        idxRow.usage.push(refElement);
+        numUsage++;
+      });
+      defWords.push(idxRow);
+    });
+  });
+
+  return defWords;
+}
+
 window.onload = () => {
   const mainNode = document.getElementsByClassName("body")[0];
   const ToCElement = document.createElement("ul");
@@ -42,4 +77,23 @@ window.onload = () => {
   ToC.appendChild(appendixToCElement);
 
   document.body.insertBefore(ToC, document.body.firstChild);
+
+
+  // ========= create index ==================
+
+  const defWords = collectDefinition(mainNode);
+
+  const indexTable = document.createElement("table");
+  indexTable.innerHTML = "<tr><th>Defined Word</th><th>Usage</th></tr>";
+  defWords.forEach(row => {
+    const tr = document.createElement("tr");
+    const defTd = document.createElement("td");
+    defTd.appendChild(row.def);
+    const usgTd = document.createElement("td");
+    row.usage.forEach(u => usgTd.appendChild(u));
+    tr.appendChild(defTd);
+    tr.appendChild(usgTd);
+    indexTable.appendChild(tr);
+  });
+  document.body.insertBefore(indexTable, document.body.firstChild);
 }
