@@ -82,6 +82,7 @@ window.onload = () => {
   // ========= create index ==================
 
   const defWords = collectDefinition(mainNode);
+  defWords.sort((item1, item2) => item1.def.innerHTML.toUpperCase() > item2.def.innerHTML.toUpperCase() ? 1: -1);
 
   const indexTable = document.createElement("table");
   indexTable.innerHTML = "<tr><th>Defined Word</th><th>Usage</th></tr>";
